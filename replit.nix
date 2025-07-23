@@ -1,22 +1,8 @@
-run = "node my-line-bot/index.js"
-entrypoint = "my-line-bot/index.js"
-
-[nix]
-channel = "stable-22_11"
-
-[env]
-PATH = "/home/runner/$REPL_SLUG/.config/npm/node_global/bin:/home/runner/$REPL_SLUG/node_modules/.bin"
-npm_config_prefix = "/home/runner/$REPL_SLUG/.config/npm/node_global"
-
-[packager]
-language = "nodejs"
-
-[packager.features]
-packageSearch = true
-guessImports = true
-
-[languages]
-[languages.javascript]
-pattern = "**/{*.js,*.jsx,*.ts,*.tsx}"
-[languages.javascript.languageServer]
-start = "typescript-language-server --stdio"
+{ pkgs }: {
+    deps = [
+        pkgs.nodejs-18_x
+        pkgs.nodePackages.typescript-language-server
+        pkgs.yarn
+        pkgs.replitPackages.jest
+    ];
+}
