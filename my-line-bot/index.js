@@ -7,8 +7,22 @@ require('dotenv').config(); // To load environment variables from .env file
 
 // Enable console logging for debugging
 console.log('Starting bot service...');
-console.log('Node environment:', process.env.NODE_ENV);
-console.log('Port:', process.env.PORT);
+console.log('Environment variables check:');
+console.log('- NODE_ENV:', process.env.NODE_ENV);
+console.log('- PORT:', process.env.PORT);
+console.log('- RAILWAY_STATIC_URL:', process.env.RAILWAY_STATIC_URL);
+console.log('- PUBLIC_URL:', process.env.PUBLIC_URL || 'web-staging-2c91.up.railway.app');
+console.log('- CHANNEL_ACCESS_TOKEN:', process.env.CHANNEL_ACCESS_TOKEN ? 'Set' : 'Not set');
+console.log('- CHANNEL_SECRET:', process.env.CHANNEL_SECRET ? 'Set' : 'Not set');
+console.log('- OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'Set' : 'Not set');
+
+// Validate required environment variables
+const requiredEnvVars = ['CHANNEL_ACCESS_TOKEN', 'CHANNEL_SECRET', 'OPENAI_API_KEY'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingEnvVars.length > 0) {
+  console.error('Error: Missing required environment variables:', missingEnvVars.join(', '));
+  process.exit(1);
+}
 
 // --- Configuration ---
 // Load credentials from environment variables for security
@@ -138,7 +152,12 @@ app.use((err, req, res, next) => {
 
 // --- Start Server ---
 const port = process.env.PORT || 3000;
+const domain = process.env.PUBLIC_URL || 'web-staging-2c91.up.railway.app';
+const webhookUrl = `https://${domain}/webhook`;
+
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`Chatbot server is running on port ${port}`);
-  console.log(`Webhook URL: ${process.env.NODE_ENV === 'production' ? 'https://' : 'http://'}${process.env.DOMAIN || 'localhost'}:${port}/webhook`);
+  console.log(`Server URL: https://${domain}`);
+  console.log(`Webhook URL: ${webhookUrl}`);
+  console.log('Please set this webhook URL in LINE Developers Console');
 });
