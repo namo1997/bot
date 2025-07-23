@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "A chatbot connecting LINE and OpenAI",
   "main": "my-line-bot/index.js",
-  "engines": {
-    "node": "18.x"
-  },
   "scripts": {
     "start": "node my-line-bot/index.js",
     "dev": "nodemon my-line-bot/index.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   },
   "keywords": [
     "line",
