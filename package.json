@@ -4,11 +4,11 @@
   "description": "A chatbot connecting LINE and OpenAI",
   "main": "my-line-bot/index.js",
   "engines": {
-    "node": ">=16.0.0"
+    "node": "18.x"
   },
   "scripts": {
     "start": "node my-line-bot/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon my-line-bot/index.js"
   },
   "keywords": [
     "line",
@@ -22,7 +22,11 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "openai": "^4.52.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
+}
 }
 }
 }
