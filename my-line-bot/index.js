@@ -26,18 +26,35 @@ const app = express();
 const lineClient = new line.Client(lineConfig);
 const openai = new OpenAI(openaiConfig);
 
+// Enable body parsing
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // --- Webhook Endpoint ---
 // This is the endpoint that LINE will send messages to.
-// The path '/webhook' can be customized.
-app.post('/webhook', line.middleware(lineConfig), (req, res) => {
-  // The line.middleware will validate the request signature for you.
-  // req.body.events will be an array of event objects.
-  Promise.all(req.body.events.map(handleEvent))
-    .then((result) => res.json(result))
-    .catch((err) => {
-      console.error('Error processing events:', err);
-      res.status(500).end();
+app.post('/webhook', line.middleware(lineConfig), async (req, res) => {
+  console.log('Received webhook request');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  
+  try {
+    const events = req.body.events;
+    // Handle no events case
+    if (!events || !events.length) {
+      console.log('No events received');
+      return res.status(200).json({ message: 'No events received' });
+    }
+
+    // Process all events
+    const results = await Promise.all(events.map(handleEvent));
+    console.log('Webhook processed successfully');
+    return res.status(200).json({ results });
+  } catch (err) {
+    console.error('Error processing webhook:', err);
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      message: err.message
     });
+  }
 });
 
 // --- Event Handler Function ---
@@ -92,13 +109,36 @@ async function handleEvent(event) {
   }
 }
 
-// Add a simple health check endpoint
+// Add health check endpoints
 app.get('/', (req, res) => {
-  res.send('Bot is running!');
+  console.log('Health check request received');
+  res.status(200).json({
+    status: 'ok',
+    message: 'Bot is running!',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/webhook', (req, res) => {
+  console.log('Webhook GET request received');
+  res.status(200).json({
+    status: 'ok',
+    message: 'Webhook is ready'
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message
+  });
 });
 
 // --- Start Server ---
 const port = process.env.PORT || 3000;
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`Chatbot server is running on port ${port}`);
+  console.log(`Webhook URL: ${process.env.NODE_ENV === 'production' ? 'https://' : 'http://'}${process.env.DOMAIN || 'localhost'}:${port}/webhook`);
 });
