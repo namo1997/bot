@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: line-openai-bot
+    plan: free # Specify the plan; 'free' is suitable for this bot.
+    env: node
+    nodeVersion: "16" # Specify node version for consistency.
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: CHANNEL_ACCESS_TOKEN
+        sync: false
+      - key: CHANNEL_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
