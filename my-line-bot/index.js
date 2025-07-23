@@ -40,18 +40,44 @@ const app = express();
 const lineClient = new line.Client(lineConfig);
 const openai = new OpenAI(openaiConfig);
 
-// Enable body parsing
+// Enable raw body parsing for LINE webhook
+app.use('/webhook', express.raw({ type: 'application/json' }));
+// Enable body parsing for other routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- Webhook Endpoint ---
 // This is the endpoint that LINE will send messages to.
-app.post('/webhook', line.middleware(lineConfig), async (req, res) => {
+app.post('/webhook', async (req, res) => {
   console.log('Received webhook request');
-  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  console.log('Headers:', req.headers);
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
   
+  // Verify signature
+  const signature = req.headers['x-line-signature'];
+  if (!signature) {
+    console.error('No signature found in request');
+    return res.status(400).json({ error: 'No signature' });
+  }
+
   try {
-    const events = req.body.events;
+    // Parse raw body
+    const body = JSON.parse(req.body);
+    console.log('Request body:', JSON.stringify(body, null, 2));
+
+    // Verify signature manually
+    const crypto = require('crypto');
+    const hash = crypto.createHmac('SHA256', lineConfig.channelSecret)
+      .update(JSON.stringify(body))
+      .digest('base64');
+    
+    if (hash !== signature) {
+      console.error('Invalid signature');
+      return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    const events = body.events;
     // Handle no events case
     if (!events || !events.length) {
       console.log('No events received');
