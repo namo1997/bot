@@ -2,8 +2,9 @@ services:
   - type: web
     name: line-openai-bot
     env: node
-    buildCommand: npm install
-    startCommand: npm start
+    runtime: node
+    buildCommand: npm install --production
+    startCommand: node my-line-bot/index.js
     envVars:
       - key: CHANNEL_ACCESS_TOKEN
         sync: false
