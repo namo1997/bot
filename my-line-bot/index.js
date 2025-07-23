@@ -5,6 +5,11 @@ const line = require('@line/bot-sdk');
 const { OpenAI } = require('openai');
 require('dotenv').config(); // To load environment variables from .env file
 
+// Enable console logging for debugging
+console.log('Starting bot service...');
+console.log('Node environment:', process.env.NODE_ENV);
+console.log('Port:', process.env.PORT);
+
 // --- Configuration ---
 // Load credentials from environment variables for security
 const lineConfig = {
