@@ -9,9 +9,6 @@ require('dotenv').config(); // To load environment variables from .env file
 console.log('Starting bot service...');
 console.log('Environment variables check:');
 console.log('- NODE_ENV:', process.env.NODE_ENV);
-console.log('- PORT:', process.env.PORT);
-console.log('- RAILWAY_STATIC_URL:', process.env.RAILWAY_STATIC_URL);
-console.log('- PUBLIC_URL:', process.env.PUBLIC_URL || 'web-staging-2c91.up.railway.app');
 console.log('- CHANNEL_ACCESS_TOKEN:', process.env.CHANNEL_ACCESS_TOKEN ? 'Set' : 'Not set');
 console.log('- CHANNEL_SECRET:', process.env.CHANNEL_SECRET ? 'Set' : 'Not set');
 console.log('- OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'Set' : 'Not set');
@@ -40,61 +37,20 @@ const app = express();
 const lineClient = new line.Client(lineConfig);
 const openai = new OpenAI(openaiConfig);
 
-// Enable raw body parsing for LINE webhook
-app.use('/webhook', express.raw({ type: 'application/json' }));
-// Enable body parsing for other routes
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
 // --- Webhook Endpoint ---
 // This is the endpoint that LINE will send messages to.
-app.post('/webhook', async (req, res) => {
-  console.log('Received webhook request');
-  console.log('Headers:', req.headers);
-  console.log('Method:', req.method);
-  console.log('URL:', req.url);
-  
-  // Verify signature
-  const signature = req.headers['x-line-signature'];
-  if (!signature) {
-    console.error('No signature found in request');
-    return res.status(400).json({ error: 'No signature' });
-  }
-
-  try {
-    // Parse raw body
-    const body = JSON.parse(req.body);
-    console.log('Request body:', JSON.stringify(body, null, 2));
-
-    // Verify signature manually
-    const crypto = require('crypto');
-    const hash = crypto.createHmac('SHA256', lineConfig.channelSecret)
-      .update(JSON.stringify(body))
-      .digest('base64');
-    
-    if (hash !== signature) {
-      console.error('Invalid signature');
-      return res.status(400).json({ error: 'Invalid signature' });
-    }
-
-    const events = body.events;
-    // Handle no events case
-    if (!events || !events.length) {
-      console.log('No events received');
-      return res.status(200).json({ message: 'No events received' });
-    }
-
-    // Process all events
-    const results = await Promise.all(events.map(handleEvent));
-    console.log('Webhook processed successfully');
-    return res.status(200).json({ results });
-  } catch (err) {
-    console.error('Error processing webhook:', err);
-    return res.status(500).json({
-      error: 'Internal Server Error',
-      message: err.message
+// The LINE SDK middleware handles signature validation and body parsing.
+app.post('/webhook', line.middleware(lineConfig), (req, res) => {
+  Promise
+    .all(req.body.events.map(handleEvent))
+    .then((result) => res.json(result))
+    .catch((err) => {
+      // The middleware has its own error handler that will send a 400/500 response.
+      // We log the error for debugging.
+      // If an error happens in `handleEvent`, we should still respond.
+      console.error('Error in event handler:', err);
+      res.status(500).end();
     });
-  }
 });
 
 // --- Event Handler Function ---
@@ -167,6 +123,10 @@ app.get('/webhook', (req, res) => {
   });
 });
 
+// Enable body parsing for other routes that might need it.
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err);
@@ -178,12 +138,9 @@ app.use((err, req, res, next) => {
 
 // --- Start Server ---
 const port = process.env.PORT || 3000;
-const domain = process.env.PUBLIC_URL || 'web-staging-2c91.up.railway.app';
-const webhookUrl = `https://${domain}/webhook`;
 
-const server = app.listen(port, '0.0.0.0', () => {
+app.listen(port, () => {
   console.log(`Chatbot server is running on port ${port}`);
-  console.log(`Server URL: https://${domain}`);
-  console.log(`Webhook URL: ${webhookUrl}`);
-  console.log('Please set this webhook URL in LINE Developers Console');
+  console.log('The webhook URL will be available in the Render dashboard after deployment.');
+  console.log('Please set this webhook URL in the LINE Developers Console.');
 });
